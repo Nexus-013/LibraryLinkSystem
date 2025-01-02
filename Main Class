@@ -1,0 +1,639 @@
+import java.util.ArrayList;
+import java.util.Scanner;
+
+// Main Class
+public class Main {
+    static Scanner scanner = new Scanner(System.in);
+    static String username = "";
+    static String password = "";
+    static boolean isLoggedIn = false;
+    static int charge = 0;
+
+    static ArrayList<String> genres = new ArrayList<>();
+    static ArrayList<ArrayList<String>> books = new ArrayList<>();
+    static ArrayList<String[]> borrowedRecords = new ArrayList<>();
+    static ArrayList<String[]> returnedRecords = new ArrayList<>();
+    static ArrayList<String[]> wishlist = new ArrayList<>();
+
+    public static void main(String[] args) {
+        while (true) {
+            System.out.println("\n=== Library Link Homepage ===");
+            System.out.println("1. Login");
+            System.out.println("2. Register");
+            System.out.println("3. Exit");
+            System.out.print("Choose an option: ");
+            int choice = scanner.nextInt();
+            scanner.nextLine(); // Consume newline
+
+            switch (choice) {
+                case 1:
+                    login();
+                    break;
+                case 2:
+                    register();
+                    break;
+                case 3:
+                    System.out.println("Exiting... Goodbye!");
+                    System.exit(0);
+                case 12345:
+                    adminSettings();
+                    break;
+                default:
+                    System.out.println("Invalid option. Try again.");
+            }
+        }
+    }
+
+    // A. Login
+    static void login() {
+        System.out.println("\n=== Library Link Login ===");
+        System.out.print("Enter Username: ");
+        String inputUser  = scanner.nextLine();
+        System.out.print("Enter Password: ");
+        String inputPass = scanner.nextLine();
+
+        if (inputUser .equals(username) && inputPass.equals(password)) {
+            System.out.println("Login Successful!");
+            isLoggedIn = true;
+            homeMenu();
+        } else {
+            System.out.println("Invalid credentials. Try again.");
+        }
+    }
+
+    // Home Menu
+    static void homeMenu() {
+        while (isLoggedIn) {
+            System.out.println("\n=== Library Link Home Menu ===");
+            System.out.println("1. Borrow Book");
+            System.out.println("2. Return Book");
+            System.out.println("3. Wish a Book");
+            System.out.println("4. Logout");
+            System.out.print("Choose an option: ");
+            int choice = scanner.nextInt();
+            scanner.nextLine(); // Consume newline
+
+            switch (choice) {
+                case 1:
+                    borrowBookMenu();
+                    break;
+                case 2:
+                    returnBookMenu();
+                    break;
+                case 3:
+                    addWishlist();
+                    break;
+                case 4:
+                    isLoggedIn = false;
+                    System.out.println("Logging out...");
+                    break;
+                default:
+                    System.out.println("Invalid option. Try again.");
+            }
+        }
+    }
+
+    // A1. Borrow Book Menu
+    static void borrowBookMenu() {
+        System.out.println("\n=== Borrow Book Menu ===");
+        System.out.println("1. Borrow a Book");
+        System.out.println("2. Back to Home");
+        System.out.print("Choose an option: ");
+        int choice = scanner.nextInt();
+        scanner.nextLine(); // Consume newline
+
+        switch (choice) {
+            case 1:
+                System.out.println("\n=== Borrow a Book Feature ===");
+                System.out.print("Enter Genre: ");
+                String genre = scanner.nextLine();
+                
+                //Finding certain genre
+                int genreIndex = genres.indexOf(genre);
+                if (genreIndex == -1) {
+                    System.out.println("Genre not found.");
+                    return;
+                }
+
+                System.out.print("Enter Title: ");
+                String title = scanner.nextLine();
+                System.out.print("Enter Author: ");
+                String author = scanner.nextLine();
+
+                //Finding certain book
+                boolean bookFound = false;
+                for (String book : books.get(genreIndex)) {
+                    if (book.startsWith(title + " by " + author)) {
+                        bookFound = true;
+                        break;
+                    }
+                }
+
+                if (!bookFound) {
+                    System.out.println("Book not found.");
+                    return;
+                }
+
+                System.out.print("Enter Borrow Date (YYYY-MM-DD): ");
+                String borrowDate = scanner.nextLine();
+                System.out.print("Enter Number of Days to Borrow: ");
+                int borrowDays = scanner.nextInt();
+                scanner.nextLine(); // Consume newline
+
+                // Calculate Due Date
+                String dueDate = calculateDueDate(borrowDate, borrowDays);
+                System.out.println("Due Date: " + dueDate);
+                System.out.println("Overdue Charge per day: PHP " + charge);
+                System.out.print("Confirm borrowing (yes/no)?: ");
+                String confirm = scanner.nextLine();
+
+                if (confirm.equalsIgnoreCase("yes")) {
+                    borrowedRecords.add(new String[]{genre, title, author, borrowDate, dueDate, String.valueOf(charge)});
+                    System.out.println("Book borrowed successfully!");
+                } else {
+                    System.out.println("Borrowing cancelled.");
+                }
+                break;
+            case 2:
+                return;
+            default:
+                System.out.println("Invalid option. Try again.");
+        }
+    }
+
+    // Calculate Due Date
+    private static String calculateDueDate(String borrowDate, int borrowDays) {
+        String[] dateParts = borrowDate.split("-");
+        int year = Integer.parseInt(dateParts[0]);
+        int month = Integer.parseInt(dateParts[1]);
+        int day = Integer.parseInt(dateParts[2]);
+
+        // Days in each month for a non-leap year
+        int[] daysInMonth = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+
+        while (borrowDays > 0) {
+            // Check for leap year and adjust February days
+            if (month == 2 && isLeapYear(year)) {
+                daysInMonth[1] = 29; // February has 29 days in a leap year
+            } else {
+                daysInMonth[1] = 28; // Reset February to 28 for non-leap years
+            }
+
+            int daysInCurrentMonth = daysInMonth[month - 1];
+
+            if (day + borrowDays <= daysInCurrentMonth) {
+                // If the remaining days fit within the current month
+                day += borrowDays;
+                borrowDays = 0; // All days have been added
+            } else {
+                // Move to the next month
+                borrowDays -= (daysInCurrentMonth - day + 1);
+                day = 1; // Reset day to the first day of the next month
+                month++;
+
+                if (month > 12) {
+                    // Move to the next year if the month exceeds December
+                    month = 1; // Reset month to January
+                    year++;
+                }
+            }
+        }
+        return 
+
+String.format("%04d-%02d-%02d", year, month, day);
+    }
+
+    // Check if year is a Leap Year
+    private static boolean isLeapYear(int year) {
+        return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+    }
+
+    // A2. Return Book Menu
+    static void returnBookMenu() {
+        System.out.println("\n=== Return Book Menu ===");
+        System.out.println("1. Return a Book");
+        System.out.println("2. Back to Home");
+        System.out.print("Choose an option: ");
+        int choice = scanner.nextInt();
+        scanner.nextLine(); // Consume newline
+
+        switch (choice) {
+            case 1:
+                System.out.println("\n=== Return a Book Feature ===");
+                System.out.print("Enter Genre: ");
+                String genre = scanner.nextLine();
+
+                System.out.print("Enter Title: ");
+                String title = scanner.nextLine();
+                System.out.print("Enter Author: ");
+                String author = scanner.nextLine();
+
+                //Finding borrowed book
+                boolean bookFound = false;
+                String[] record = null;
+
+                for (String[] entry : borrowedRecords) {
+                    if (entry[0].equals(genre) && entry[1].equals(title) && entry[2].equals(author)) {
+                        bookFound = true;
+                        record = entry;
+                        break;
+                    }
+                }
+
+                if (!bookFound) {
+                    System.out.println("Book not found in borrowed records.");
+                    return;
+                }
+
+                System.out.println("Due Date: " + record[4]);
+                int originalCharge = Integer.parseInt(record[5]);
+                System.out.println("Charge per day: PHP " + charge);
+
+                System.out.print("Enter Return Date (YYYY-MM-DD): ");
+                String returnDate = scanner.nextLine();
+
+                // Calculate Total Charge
+                int totalCharge = 0;
+                if (returnDate.compareTo(record[4]) > 0) {
+                    int lateDays = calculateLateDays(record[4], returnDate);
+                    totalCharge = lateDays * charge;
+                }
+
+                System.out.println("Total Charge: PHP " + totalCharge);
+                System.out.print("Enter Payment Amount (Enter "0" if 0 charge): PHP ");
+                int payment = scanner.nextInt();
+                scanner.nextLine(); // Consume newline
+
+                if (payment >= totalCharge) {
+                    int change = payment - totalCharge;
+                    returnedRecords.add(new String[]{genre, title, author, returnDate, String.valueOf(charge), String.valueOf(totalCharge)});
+                    borrowedRecords.remove(record);
+                    System.out.println("Book returned successfully! Change: PHP " + change);
+                } else {
+                    System.out.println("Insufficient payment. Return failed.");
+                }
+                break;
+            case 2:
+                return;
+            default:
+                System.out.println("Invalid option. Try again.");
+        }
+    }
+
+    // Calculate late days
+    static int calculateLateDays(String dueDate, String returnDate) {
+        String[] dueParts = dueDate.split("-");
+        String[] returnParts = returnDate.split("-");
+
+        int dueYear = Integer.parseInt(dueParts[0]);
+        int dueMonth = Integer.parseInt(dueParts[1]);
+        int dueDay = Integer.parseInt(dueParts[2]);
+
+        int returnYear = Integer.parseInt(returnParts[0]);
+        int returnMonth = Integer.parseInt(returnParts[1]);
+        int returnDay = Integer.parseInt(returnParts[2]);
+
+        // Simplified calculation of total days
+        int dueTotal = (dueYear * 365) + (dueMonth * 30) + dueDay;
+        int returnTotal = (returnYear * 365) + (returnMonth * 30) + returnDay;
+
+        return returnTotal - dueTotal;
+    }
+
+    // A3. Book Wishlists
+    static void addWishlist() {
+        while (true) {
+            System.out.println("\n=== Book Wishlist ===");
+            System.out.println("1. Make a Wish");
+            System.out.println("2. Exit");
+            System.out.print("Enter your choice: ");
+            int choice = scanner.nextInt();
+            scanner.nextLine();
+
+            switch (choice) {
+                case 1:
+                    System.out.print("Enter the title of the book: ");
+                    String title = scanner.nextLine();
+                    System.out.print("Enter the author of the book: ");
+                    String author = scanner.nextLine();
+                    wishlist.add(new String[]{title, author});
+                    System.out.println("Wish Granted...");
+                    break;
+
+                case 2:
+                    System.out.println("May Your Wish Come True...");
+                    return;
+
+                default:
+                    System.out.println("Invalid choice. Please try again.");
+            }
+        }
+    }
+
+    // B. Register
+    static void register() {
+        System.out.println("\n=== Library Link Registration ===");
+        System.out.print("Enter Username: ");
+        username = scanner.nextLine();
+        System.out.print("Enter Password: ");
+        String pass = scanner.nextLine();
+        System.out.print("Confirm Password: ");
+        String confirmPass = scanner.nextLine();
+
+        if (pass.equals(confirmPass)) {
+            password = pass;
+            System.out.println("Registration Successful!");
+        } else {
+            System.out.println("Passwords do not match. Registration failed.");
+        }
+    }
+
+    // C. Admin Settings
+    static void adminSettings() {
+        while (true) {
+            System.out.println("\n=== Admin Settings ===");
+            System.out.println("1. Add Genre & Books");
+            System.out.println("2. Remove Genre & Books");
+            System.out.println("3. View Records");
+            System.out.println("4. Wishlists");
+            System.out.println("5. Overdue Charge");
+            System.out.println("6. Exit");
+            System.out.print("Choose an option: ");
+            int choice = scanner.nextInt();
+            scanner.nextLine(); // Consume newline
+
+            switch (choice) {
+                case 1:
+                    addGenreAndBooksMenu();
+                    break;
+                case 2:
+                    removeGenreAndBooksMenu();
+                    break;
+                case 3:
+                    viewRecordsMenu();
+                    break;
+                case 4:
+                    wishlistsMenu();
+                    break;
+                case 5:
+                    overdueChargeMenu();
+                    break;
+                case 6:
+                    return;
+                default:
+                    System.out.println("Invalid option. Try again.");
+            
+            }
+        }
+    }
+
+    // C1. Add Genre & Books Menu
+    static void addGenreAndBooksMenu() {
+        System.out.println("\n=== Add Genre & Books Menu ===");
+        System.out.println("1. Add Genre");
+        System.out.println("2. Add Book");
+        System.out.println("3. View Genres & Books");
+        System.out.println("4. Back to Home");
+        System.out.print("Choose an option: ");
+        int choice = scanner.nextInt();
+        scanner.nextLine(); // Consume newline
+
+        switch (choice) {
+            case 1:
+                System.out.println("\n=== Add Genre Features ===");
+                System.out.print("Enter Genre Name: ");
+                String genre = scanner.nextLine();
+                genres.add(genre);
+                books.add(new ArrayList<>());
+                System.out.println("Genre added successfully!");
+                break;
+
+            case 2:
+                System.out.println("\n=== Add Book Feature ===");
+                System.out.print("Enter Genre Name: ");
+                String genreName = scanner.nextLine();
+                int genreIndex = genres.indexOf(genreName);
+
+                if (genreIndex != -1) {
+                    System.out.print("Enter Book Title: ");
+                    String title = scanner.nextLine();
+                    System.out.print("Enter Author: ");
+                    String author = scanner.nextLine();
+                    books.get(genreIndex).add(title + " by " + author);
+                    System.out.println("Book added successfully!");
+                } else {
+                    System.out.println("Genre not found.");
+                }
+                break;
+
+            case 3:
+                System.out.println("\n=== View Genres & Books ===");
+                for (int i = 0; i < genres.size(); i++) {
+                    System.out.println("Genre: " + genres.get(i));
+                    if (books.get(i).isEmpty()) {
+                        System.out.println("  No books available.");
+                    } else {
+                        for (String book : books.get(i)) {
+                            System.out.println("  " + book);
+                        }
+                    }
+                }
+                break;
+
+            case 4:
+                return;
+
+            default:
+                System.out.println("Invalid option. Try again.");
+        }
+        addGenreAndBooksMenu();
+    }
+
+    // C2. Remove Genre & Books Menu
+    static void removeGenreAndBooksMenu() {
+        System.out.println("\n=== Remove Genre & Books Menu ===");
+        System.out.println("1. Remove Genre");
+        System.out.println("2. Remove Book");
+        System.out.println("3. Back to Home");
+        System.out.print("Choose an option: ");
+        int choice = scanner.nextInt();
+        scanner.nextLine(); // Consume newline
+
+        switch (choice) {
+            case 1:
+                System.out.println("\n=== Remove Genre Features ===");
+                System.out.print("Enter Genre to Remove: ");
+                String genre = scanner.nextLine();
+                int genreIndex = genres.indexOf(genre);
+
+                if (genreIndex != -1) {
+                    genres.remove(genreIndex);
+                    books.remove(genreIndex);
+                    System.out.println("Genre removed successfully!");
+                } else {
+                    System.out.println("Genre not found.");
+                }
+                break;
+
+            case 2:
+                System.out.println("\n=== Remove Book Features ===");
+                System.out.print("Enter Genre: ");
+                String genreName = scanner.nextLine();
+                int index = genres.indexOf(genreName);
+
+                if (index != -1) {
+                    System.out.print("Enter Book Title: ");
+                    String title = scanner.nextLine();
+                    boolean removed = books.get(index).removeIf(book -> book.startsWith(title));
+
+                    if (removed) {
+                        System.out.println("Book removed successfully!");
+                    } else {
+                        System.out.println("Book not found.");
+                    }
+                } else {
+                    System.out.println("Genre not found.");
+                }
+                break;
+
+            case 3:
+                return;
+
+            default:
+                System.out.println("Invalid option. Try again.");
+        }
+        removeGenreAndBooksMenu();
+    }
+
+    // C3. View Records Menu
+    static void viewRecordsMenu() {
+        System.out.println("\n=== View Records Menu ===");
+        System.out.println("1. View Borrowed Books Record");
+        System.out.println("2. View Returned Books Record");
+        System.out.println("3. Back to Home");
+        System.out.print("Choose an option: ");
+        int choice = scanner.nextInt();
+        scanner.nextLine(); // Consume newline
+
+        switch (choice) {
+            case 1:
+                System.out.println("\n--- Borrowed Books Record ---");
+                for (String[] record : borrowedRecords) {
+                    System.out.println("Genre: " + record[0]);
+                    System.out.println("Title: " + record[1]);
+                    System.out.println("Author: " + record[2]);
+                    System.out.println("Borrow Date: " + record[3]);
+
+                    System.out.println("Due Date: " + record[4]);
+                    System.out.println("Charge: PHP " + record[5]);
+                    System.out.println("------------------------------");
+                }
+                break;
+
+            case 2:
+                System.out.println("\n--- Returned Books Record ---");
+                for (String[] record : returnedRecords) {
+                    System.out.println("Genre: " + record[0]);
+                    System.out.println("Title: " + record[1]);
+                    System.out.println("Author: " + record[2]);
+                    System.out.println("Return Date: " + record[3]);
+                    System.out.println("Overdue Charge per day: PHP " + record[4]);
+                    System.out.println("Total Charge: PHP " + record[5]);
+                    System.out.println("------------------------------");
+                }
+                break;
+
+            case 3:
+                return;
+
+            default:
+                System.out.println("Invalid option. Try again.");
+        }
+        viewRecordsMenu();
+    }
+
+    // C4. Wishlist Menu
+    static void wishlistsMenu() {
+        while (true) {
+            System.out.println("\nWishlist Menu:");
+            System.out.println("1. View Wishlist");
+            System.out.println("2. Remove a Book from Wishlist");
+            System.out.println("3. Exit");
+            System.out.print("Choose an option: ");
+            int choice = scanner.nextInt();
+            scanner.nextLine(); // Consume newline
+
+            switch (choice) {
+                case 1:
+                    viewWishlist();
+                    break;
+
+                case 2:
+                    System.out.print("Enter the title of the book to remove: ");
+                    String removeTitle = scanner.nextLine();
+                    removeWishlist(removeTitle);
+                    break;
+
+                case 3:
+                    System.out.println("Exiting...");
+                    return;
+
+                default:
+                    System.out.println("Invalid choice. Please try again.");
+            }
+        }
+    }
+
+    // View all books in the wishlist
+    static void viewWishlist() {
+        System.out.println("\n=== Book Wishlist ===");
+        for (String[] record : wishlist) {
+            System.out.println(record[0] + " by " + record[1]);
+        }
+    }
+
+    // Remove a book from the wishlist by title
+    static void removeWishlist(String title) {
+        for (int i = 0; i < wishlist.size(); i++) {
+            if (wishlist.get(i)[0].equalsIgnoreCase(title)) {
+                System.out.println("\"" + wishlist.get(i)[0] + "\" has been removed from Book Wishlist.");
+                wishlist.remove(i);
+                return;
+            }
+        }
+        System.out.println("\"" + title + "\" is not in the wishlist.");
+    }
+
+    // C5. Charge 
+    static void overdueChargeMenu() {
+        while (true) {
+            System.out.println("\nCharge Menu:");
+            System.out.println("1. Set Overdue Charge");
+            System.out.println("2. View Overdue Charge");
+            System.out.println("3. Remove Overdue Charge");
+            System.out.println("4. Exit");
+            System.out.print("Choose an option: ");
+            int choice = scanner.nextInt();
+
+            switch (choice) {
+                case 1:
+                    System.out.print("Enter the desired Overdue Charge: PHP ");
+                    charge = scanner.nextInt();
+                    System.out.println("Overdue charge set successfully.");
+                    break;
+                case 2:
+                    System.out.println("Overdue Charge: PHP " + charge);
+                    break;
+                case 3:
+                    charge = 0; // Reset the value to indicate removal
+                    System.out.println("Overdue Charge removed successfully.");
+                    break;
+                case 4:
+                    System.out.println("Exiting...");
+                    return; // Exit the Charge Menu
+                default:
+                    System.out.println("Invalid choice. Please try again.");
+            }
+        }
+    }
+}
