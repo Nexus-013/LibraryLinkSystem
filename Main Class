@@ -38,7 +38,9 @@ static Scanner scanner = new Scanner(System.in);
                 case 3:
                     System.out.println("Exiting... Goodbye!");
                     System.exit(0);
-                case 12345:
+               
+                 //Input 12345 to open        hidden Admin Settings 
+                 case 12345:
                     adminSettings();
                     break;
                 default:
